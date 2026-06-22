@@ -3,13 +3,26 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: ProcurementFlow API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: departments
+    description: Department operations
+  - name: inventory
+    description: Inventory item operations
+  - name: requests
+    description: Procurement request operations
+  - name: transactions
+    description: Transaction log operations
+  - name: analytics
+    description: Dashboard analytics operations
+  - name: webhook
+    description: Webhook operations
+
 paths:
   /healthz:
     get:
@@ -24,6 +37,321 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /departments:
+    get:
+      operationId: listDepartments
+      tags: [departments]
+      summary: List all departments
+      responses:
+        "200":
+          description: List of departments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Department"
+
+  /inventory:
+    get:
+      operationId: listInventoryItems
+      tags: [inventory]
+      summary: List all inventory items
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: lowStock
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of inventory items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryItem"
+    post:
+      operationId: createInventoryItem
+      tags: [inventory]
+      summary: Create a new inventory item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventoryItemInput"
+      responses:
+        "201":
+          description: Created inventory item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItem"
+        "400":
+          description: Validation error
+
+  /inventory/{id}:
+    get:
+      operationId: getInventoryItem
+      tags: [inventory]
+      summary: Get a single inventory item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Inventory item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItem"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateInventoryItem
+      tags: [inventory]
+      summary: Update an inventory item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventoryItemUpdate"
+      responses:
+        "200":
+          description: Updated inventory item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryItem"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteInventoryItem
+      tags: [inventory]
+      summary: Delete an inventory item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
+  /requests:
+    get:
+      operationId: listRequests
+      tags: [requests]
+      summary: List all procurement requests
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected, fulfilled]
+        - name: departmentId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Request"
+    post:
+      operationId: createRequest
+      tags: [requests]
+      summary: Submit a new procurement request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestInput"
+      responses:
+        "201":
+          description: Created request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Request"
+        "400":
+          description: Validation error
+
+  /requests/{id}:
+    get:
+      operationId: getRequest
+      tags: [requests]
+      summary: Get a single request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Request detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Request"
+        "404":
+          description: Not found
+
+  /requests/{id}/approve:
+    post:
+      operationId: approveRequest
+      tags: [requests]
+      summary: Approve a request and deduct stock
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approved request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Request"
+        "400":
+          description: Insufficient stock or validation error
+        "404":
+          description: Not found
+
+  /requests/{id}/reject:
+    post:
+      operationId: rejectRequest
+      tags: [requests]
+      summary: Reject a request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Rejected request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Request"
+        "404":
+          description: Not found
+
+  /transactions:
+    get:
+      operationId: listTransactions
+      tags: [transactions]
+      summary: List all transactions
+      parameters:
+        - name: departmentId
+          in: query
+          schema:
+            type: integer
+        - name: itemId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transaction"
+
+  /analytics/dashboard:
+    get:
+      operationId: getDashboardSummary
+      tags: [analytics]
+      summary: Get dashboard summary metrics
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /analytics/department-usage:
+    get:
+      operationId: getDepartmentUsage
+      tags: [analytics]
+      summary: Get item usage by department
+      responses:
+        "200":
+          description: Department usage data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DepartmentUsage"
+
+  /analytics/low-stock:
+    get:
+      operationId: getLowStockItems
+      tags: [analytics]
+      summary: Get items with low stock
+      responses:
+        "200":
+          description: Low stock items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryItem"
+
+  /webhook/google-forms:
+    post:
+      operationId: googleFormsWebhook
+      tags: [webhook]
+      summary: Receive Google Forms submissions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookPayload"
+      responses:
+        "200":
+          description: Always returns 200 to prevent retries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookResult"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +362,192 @@ components:
       required:
         - status
 
+    Department:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+
+    InventoryItem:
+      type: object
+      required: [id, name, sku, stockLevel, unitPrice, category, lowStockThreshold]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        sku:
+          type: string
+        stockLevel:
+          type: integer
+        unitPrice:
+          type: number
+        category:
+          type: string
+        lowStockThreshold:
+          type: integer
+        createdAt:
+          type: string
+
+    InventoryItemInput:
+      type: object
+      required: [name, sku, stockLevel, unitPrice, category, lowStockThreshold]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        sku:
+          type: string
+          minLength: 1
+        stockLevel:
+          type: integer
+          minimum: 0
+        unitPrice:
+          type: number
+          minimum: 0
+        category:
+          type: string
+          minLength: 1
+        lowStockThreshold:
+          type: integer
+          minimum: 0
+
+    InventoryItemUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        sku:
+          type: string
+          minLength: 1
+        stockLevel:
+          type: integer
+          minimum: 0
+        unitPrice:
+          type: number
+          minimum: 0
+        category:
+          type: string
+        lowStockThreshold:
+          type: integer
+          minimum: 0
+
+    Request:
+      type: object
+      required: [id, employeeEmail, departmentId, itemId, quantity, status, createdAt]
+      properties:
+        id:
+          type: integer
+        employeeEmail:
+          type: string
+        departmentId:
+          type: integer
+        itemId:
+          type: integer
+        quantity:
+          type: integer
+        status:
+          type: string
+          enum: [pending, approved, rejected, fulfilled]
+        createdAt:
+          type: string
+        departmentName:
+          type: ["string", "null"]
+        itemName:
+          type: ["string", "null"]
+        itemSku:
+          type: ["string", "null"]
+
+    RequestInput:
+      type: object
+      required: [employeeEmail, departmentId, itemId, quantity]
+      properties:
+        employeeEmail:
+          type: string
+          minLength: 1
+        departmentId:
+          type: integer
+        itemId:
+          type: integer
+        quantity:
+          type: integer
+          minimum: 1
+
+    Transaction:
+      type: object
+      required: [id, requestId, itemId, departmentId, quantityDeducted, timestamp]
+      properties:
+        id:
+          type: integer
+        requestId:
+          type: integer
+        itemId:
+          type: integer
+        departmentId:
+          type: integer
+        quantityDeducted:
+          type: integer
+        timestamp:
+          type: string
+        itemName:
+          type: ["string", "null"]
+        departmentName:
+          type: ["string", "null"]
+
+    DashboardSummary:
+      type: object
+      required: [totalRequests, pendingRequests, approvedRequests, rejectedRequests, totalInventoryItems, lowStockCount, totalInventoryValue]
+      properties:
+        totalRequests:
+          type: integer
+        pendingRequests:
+          type: integer
+        approvedRequests:
+          type: integer
+        rejectedRequests:
+          type: integer
+        totalInventoryItems:
+          type: integer
+        lowStockCount:
+          type: integer
+        totalInventoryValue:
+          type: number
+
+    DepartmentUsage:
+      type: object
+      required: [departmentId, departmentName, totalQuantity, totalRequests]
+      properties:
+        departmentId:
+          type: integer
+        departmentName:
+          type: string
+        totalQuantity:
+          type: integer
+        totalRequests:
+          type: integer
+
+    WebhookPayload:
+      type: object
+      required: [employeeEmail, departmentName, itemName, quantity]
+      properties:
+        employeeEmail:
+          type: string
+        departmentName:
+          type: string
+        itemName:
+          type: string
+        quantity:
+          type: integer
+
+    WebhookResult:
+      type: object
+      required: [received]
+      properties:
+        received:
+          type: boolean
+        message:
+          type: ["string", "null"]
